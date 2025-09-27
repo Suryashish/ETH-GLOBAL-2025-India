@@ -1,11 +1,17 @@
 import Editor from '@monaco-editor/react';
 import { setupSolidity } from './monaco-solidity/setup';
 
-const CodeEditor = ({ code, language, title }) => {
+const CodeEditor = ({ code, language, title, onChange }) => {
   const handleEditorWillMount = (monaco) => {
-    // Only run the custom Solidity setup if the language is 'solidity'
     if (language === 'solidity') {
       setupSolidity(monaco);
+    }
+  };
+
+  const handleEditorChange = (value) => {
+    // If an onChange function is provided, call it with the new value.
+    if (onChange) {
+      onChange(value);
     }
   };
 
@@ -15,13 +21,13 @@ const CodeEditor = ({ code, language, title }) => {
         &gt; {title}
       </div>
       <div className="flex-1">
-        
         <Editor
-          beforeMount={handleEditorWillMount}
+          height="100%"
           language={language}
-          // Use our custom theme for Solidity, and the default for others
           theme={language === 'solidity' ? 'solidity-theme' : 'vs-dark'}
           value={code}
+          beforeMount={handleEditorWillMount}
+          onChange={handleEditorChange}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
