@@ -63,6 +63,79 @@ app.post('/compilesmartcontract', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+app.post("/runJsCode", async (req, res) => {
+  const { code, fileName } = req.body;
+
+  try {
+    // 1. Create a temp file inside a safe folder
+    const dir = path.join(process.cwd(), "js_tests");
+    await fs.mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, `${fileName}.js`);
+
+    // 2. Write the code into that file
+    await fs.writeFile(filePath, code);
+
+    // 3. Execute the file with node
+    const { stdout, stderr } = await execPromise(`node ${filePath}`);
+
+    // 4. Return result
+    res.json({
+      success: true,
+      output: stdout,
+      error: stderr || null,
+    });
+  } catch (error) {
+    console.error(`Execution error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Unknown error",
+    });
+  }
+});
+
 // add the start script 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');

@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import Header from './Header';
 import OutputConsole from './OutputConsole';
+
+// Import all template components
 import SmartContract from '../templates/SmartContract';
-// ... other template imports
+import StorageExample from '../templates/StorageExample';
+import DataAvailability from '../templates/DataAvailability';
+import DataServing from '../templates/DataServing';
 
 const Playground = ({ activeTemplate }) => {
   // State for the console
@@ -10,24 +14,24 @@ const Playground = ({ activeTemplate }) => {
   const [consoleOutput, setConsoleOutput] = useState('');
   const [isCompiling, setIsCompiling] = useState(false);
 
-  // State for the code in the editors
-  const [solidityCode, setSolidityCode] = useState(`pragma solidity ^0.8.19;
+  // State for the code in the editors (specific to the SmartContract template)
+  const [solidityCode, setSolidityCode] = useState(`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
-contract StorageRegistry {
-    address public owner;
-    string public data;
-
-    constructor() {
-        owner = msg.sender;
+contract MyToken {
+    mapping(address => uint256) public balances;
+    uint256 public totalSupply;
+    
+    constructor(uint256 _initialSupply) {
+        totalSupply = _initialSupply;
+        balances[msg.sender] = _initialSupply;
     }
-
-    function store(string memory _data) public {
-        require(msg.sender == owner, "Only owner can store data");
-        data = _data;
-    }
-
-    function retrieve() public view returns (string memory) {
-        return data;
+    
+    function transfer(address to, uint256 amount) public returns (bool) {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+        return true;
     }
 }
 `);
@@ -40,6 +44,14 @@ const contractAddress = "YOUR_CONTRACT_ADDRESS";
 
   // --- API Call Handler ---
   const handleRunCompile = async () => {
+    // This function is specific to the SmartContract template,
+    // so we can add a check if needed, though the button is universal.
+    // if (activeTemplate !== 'smart-contract') {
+    //     setConsoleOutput('This template does not support compilation.');
+    //     setIsConsoleExpanded(true);
+    //     return;
+    // }
+
     setIsCompiling(true);
     setIsConsoleExpanded(true); // Automatically open the console
     setConsoleOutput('Sending code to compiler...');
@@ -55,6 +67,12 @@ const contractAddress = "YOUR_CONTRACT_ADDRESS";
           fileName: 'StorageRegistry', // You can make this dynamic if needed
         }),
       });
+
+      // Handle cases where the response is not ok (e.g., 500 server error)
+      if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server responded with ${response.status}: ${errorText}`);
+      }
 
       const result = await response.json();
 
@@ -72,6 +90,46 @@ const contractAddress = "YOUR_CONTRACT_ADDRESS";
   };
 
 
+  const handleRunJsonRpc = async () => {
+    // This function is specific to the SmartContract template,
+    // so we can add a check if needed, though the button is universal.
+    if (activeTemplate !== 'smart-contract') {
+        try{
+            const response = await fetch('http://localhost:3000/runJsCode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: typescriptCode,
+                    fileName: 'StorageRegistry', // You can make this dynamic if needed
+                }),
+            });
+
+            // Handle cases where the response is not ok (e.g., 500 server error)
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server responded with ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                setConsoleOutput(`✅ Compilation Successful!\n\n${result.output}`);
+            } else {
+                setConsoleOutput(`❌ Compilation Failed!\n\n${result.error}`);
+            }
+
+        }
+        catch (error) {
+            console.error('API call failed:', error);
+            setConsoleOutput(`❌ Network Error: Could not connect to the compiler service.\n\n${error.message}`);
+        }
+        return;
+    }
+  };
+
+  // This function now renders the correct component for each active template
   const renderActiveTemplate = () => {
     switch (activeTemplate) {
       case 'smart-contract':
@@ -83,15 +141,33 @@ const contractAddress = "YOUR_CONTRACT_ADDRESS";
             onTypeScriptChange={setTypescriptCode}
           />
         );
-      // ... cases for other templates
+      case 'storage':
+        return (<StorageExample 
+                  typescriptCode={typescriptCode}
+                  onTypeScriptChange={setTypescriptCode}
+                />);
+      
+      case 'data-serving':
+        return (<DataServing 
+          typescriptCode={typescriptCode}
+          onTypeScriptChange={setTypescriptCode}
+        />);
+      case 'da':
+        return(
+        <DataAvailability 
+          typescriptCode={typescriptCode}
+          onTypeScriptChange={setTypescriptCode}
+        />
+      );
       default:
-        return <div>Select a template</div>;
+        // A fallback for an unknown template
+        return <div className="p-4 text-gray-500">Please select a template from the sidebar.</div>;
     }
   };
 
   return (
     <div className="bg-[#000000] p-4 rounded-lg border border-gray-800 h-full flex flex-col">
-      <Header onRunClick={handleRunCompile} isCompiling={isCompiling} />
+      <Header onRunClick={activeTemplate !== 'smart-contract' ? handleRunJsonRpc : handleRunCompile} isCompiling={isCompiling} />
       <div className="pt-6 flex-grow flex flex-col overflow-hidden">
         <div className="flex-grow relative">
           <div className="absolute inset-0">

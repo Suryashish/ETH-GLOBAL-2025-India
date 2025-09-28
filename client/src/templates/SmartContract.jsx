@@ -14,12 +14,6 @@ const SmartContract = ({
         code={solidityCode}
         onChange={onSolidityChange}
       />
-      {/* <CodeEditor
-        title="script.ts"
-        language="typescript"
-        code={typescriptCode}
-        onChange={onTypeScriptChange}
-      /> */}
     </div>
   );
 };
